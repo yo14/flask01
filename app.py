@@ -1,42 +1,47 @@
 from flask import Flask, render_template
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 
-from models import db, Page
+from models import db, Page, Menu
+from views import PageModelView
 
 app = Flask(__name__)
 app.config.from_pyfile('settings.py')
 
 db.init_app(app)
 
+admin = Admin(app, name='Flask01', template_mode='bootstrap3')
+admin.add_view(PageModelView(Page, db.session))
+admin.add_view(ModelView(Menu, db.session))
+
 @app.route('/')
-def index():
-    # ini cara pyspg dari latihan sebelumnya
-    # import psycopg2
-    # con = psycopg2.connect('dbname=flask01 user=postgres password=bebasroot host=localhost')
-    # cur = con.cursor()
-    # cur.execute('select contents from page where id=1;')
-    # contents = cur.fetchone()
-    # con.close()
+@app.route('/<url>')
+def index(url=None):
+    page = Page.query.first()
+    if url is not None:
+        page = Page.query.filter_by(url=url).first()
 
-    page = Page.query.filter_by(id=1).first()
+    contents = 'empty'
+    if page is not None:
+        contents = page.contents
 
-    return render_template('index.html', TITLE='Flask-01', CONTENT=page.contents)
+    menu = Menu.query.order_by('order')
 
-@app.route('/about')
-def about():
-    return render_template('about.html', TITLE='Flask-01')
+    return render_template('index.html', TITLE='Flask-01', CONTENT=contents, menu=menu)
 
-@app.route('/testdb')
-def testdeb():
-    import psycopg2
 
-    con = psycopg2.connect('dbname=flask01 user=postgres password=bebasroot host=localhost')
-    cur = con.cursor()
-
-    cur.execute('select * from page;')
-    id,title = cur.fetchone()
-    con.close()
-
-    return 'Output table page: {} - {}'.format(id, title)
+# @app.route('/testdb')
+# def testdeb():
+#     import psycopg2
+#
+#     con = psycopg2.connect('dbname=flask01 user=postgres password=bebasroot host=localhost')
+#     cur = con.cursor()
+#
+#     cur.execute('select * from page;')
+#     id,title = cur.fetchone()
+#     con.close()
+#
+#     return 'Output table page: {} - {}'.format(id, title)
 
 
 app.run('0.0.0.0', debug=True)
